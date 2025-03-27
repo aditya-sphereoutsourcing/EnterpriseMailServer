@@ -21,11 +21,17 @@ def start_smtp_server_thread():
     
     try:
         logger.info("Starting SMTP server thread...")
+        logger.debug("Creating new event loop for SMTP server")
+        logger.debug("About to run start_smtp_server coroutine")
         loop.run_until_complete(start_smtp_server())
+        logger.info("SMTP server started successfully, entering run_forever")
         loop.run_forever()
     except Exception as e:
-        logger.error(f"Error in SMTP server: {e}")
+        logger.error(f"Error in SMTP server thread: {e}", exc_info=True)
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
     finally:
+        logger.info("Closing SMTP server event loop")
         loop.close()
 
 if __name__ == "__main__":

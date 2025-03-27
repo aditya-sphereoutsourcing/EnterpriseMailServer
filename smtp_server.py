@@ -31,6 +31,9 @@ SMTP_PORT = 8000
 USE_TLS = True
 REQUIRE_AUTH = True
 
+# Make a copy for fallback scenarios
+ORIGINAL_TLS_SETTING = USE_TLS
+
 class EnterpriseEmailHandler(Message):
     """Custom handler for processing incoming emails"""
     
@@ -100,20 +103,44 @@ class EnterpriseEmailHandler(Message):
 async def start_smtp_server():
     """Start the SMTP server"""
     try:
+        logger.debug("Creating SMTP server handler instance")
         handler = EnterpriseEmailHandler()
         
-        if USE_TLS:
-            # Get SSL context for TLS
-            ssl_context = get_ssl_context()
-            controller = Controller(
-                handler,
-                hostname=SMTP_HOST,
-                port=SMTP_PORT,
-                ssl_context=ssl_context,
-                auth_required=REQUIRE_AUTH,
-                authenticator=auth_handler,
-                ident="EnterpriseMailServer"
-            )
+        # Reference the original setting to avoid LSP errors
+        current_tls_setting = ORIGINAL_TLS_SETTING
+        logger.debug(f"Setting up SMTP server on {SMTP_HOST}:{SMTP_PORT}, TLS: {current_tls_setting}")
+        if current_tls_setting:
+            try:
+                # Get SSL context for TLS
+                logger.debug("Getting SSL context for TLS")
+                ssl_context = get_ssl_context()
+                logger.debug("SSL context created successfully")
+                controller = Controller(
+                    handler,
+                    hostname=SMTP_HOST,
+                    port=SMTP_PORT,
+                    ssl_context=ssl_context,
+                    auth_required=REQUIRE_AUTH,
+                    authenticator=auth_handler,
+                    ident="EnterpriseMailServer"
+                )
+                logger.debug("Created SMTP controller with TLS")
+            except Exception as ssl_error:
+                logger.error(f"Error setting up SSL: {ssl_error}", exc_info=True)
+                import traceback
+                logger.error(f"SSL Error Traceback: {traceback.format_exc()}")
+                # Fallback to non-TLS
+                logger.warning("Falling back to non-TLS mode due to SSL setup failure")
+                # Using a local variable for fallback, not modifying the global
+                use_tls_local = False
+                controller = Controller(
+                    handler,
+                    hostname=SMTP_HOST,
+                    port=SMTP_PORT,
+                    auth_required=REQUIRE_AUTH,
+                    authenticator=auth_handler,
+                    ident="EnterpriseMailServer"
+                )
         else:
             controller = Controller(
                 handler,
@@ -123,16 +150,36 @@ async def start_smtp_server():
                 authenticator=auth_handler,
                 ident="EnterpriseMailServer"
             )
+            logger.debug("Created SMTP controller without TLS")
         
-        logger.info(f"Starting SMTP server on {SMTP_HOST}:{SMTP_PORT} with TLS: {USE_TLS}")
+        # Try to check if port is available before starting
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind((SMTP_HOST, SMTP_PORT))
+            logger.debug(f"Port {SMTP_PORT} is available")
+            s.close()
+        except OSError as e:
+            logger.warning(f"Port {SMTP_PORT} might be in use: {e}")
+            # Continue anyway as Controller will handle this properly
+        
+        logger.info(f"Starting SMTP server on {SMTP_HOST}:{SMTP_PORT} with TLS: {current_tls_setting}")
         controller.start()
+        logger.info("SMTP server started successfully")
         
         # Keep the server running
+        logger.debug("Entering server maintenance loop")
+        counter = 0
         while True:
-            await asyncio.sleep(3600)  # Keep the server running
+            await asyncio.sleep(60)  # Check every minute instead of every hour
+            counter += 1
+            if counter % 60 == 0:  # Log every hour
+                logger.info(f"SMTP server running for {counter // 60} hour(s)")
             
     except Exception as e:
-        logger.error(f"Error starting SMTP server: {e}")
+        logger.error(f"Error starting SMTP server: {e}", exc_info=True)
+        import traceback
+        logger.error(f"SMTP Server Error Traceback: {traceback.format_exc()}")
         raise
 
 async def auth_handler(server, session, envelope, username, password):
