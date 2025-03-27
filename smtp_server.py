@@ -99,6 +99,15 @@ class EnterpriseEmailHandler(Message):
         except Exception as e:
             logger.error(f"Error processing email: {e}")
             return "451 Requested action aborted: local error in processing"
+            
+    def handle_message(self, message):
+        """
+        Required implementation of abstract method from Message class.
+        This method is called to process a message object.
+        In our case, we're using handle_DATA for the actual processing.
+        """
+        logger.debug("handle_message called, but we're using handle_DATA for processing")
+        return None
 
 async def start_smtp_server():
     """Start the SMTP server"""
