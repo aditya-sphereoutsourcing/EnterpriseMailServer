@@ -3,6 +3,7 @@ Flask application for the enterprise SMTP server.
 Provides RESTful API and web interface.
 """
 import os
+import json
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -13,6 +14,10 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 from marshmallow import Schema, fields, validate, ValidationError
+
+# Import for configuration management
+import config as config_module
+from utils.config_manager import load_config, save_config, test_smtp_relay, restart_smtp_server, validate_config
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -236,6 +241,116 @@ def api_email_stats(current_user):
     except Exception as e:
         logger.error(f"Error retrieving email stats: {e}")
         return jsonify({'error': str(e)}), 500
+
+# Configuration Wizard Routes
+@app.route('/config_wizard')
+def config_wizard():
+    """SMTP Server Configuration Wizard"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Check if user is an admin (assuming admin has id=1 for simplicity)
+    from models import User
+    user = User.query.get(session['user_id'])
+    if user.id != 1:  # In a real app, check for admin role instead
+        flash('You do not have permission to access the configuration wizard')
+        return redirect(url_for('dashboard'))
+    
+    # Load current configuration
+    smtp_config = load_config()
+    
+    return render_template('config_wizard.html', config=smtp_config)
+
+@app.route('/save_smtp_config', methods=['POST'])
+def save_smtp_config():
+    """Save SMTP configuration from wizard"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Check if user is an admin
+    from models import User
+    user = User.query.get(session['user_id'])
+    if user.id != 1:  # In a real app, check for admin role instead
+        flash('You do not have permission to modify the configuration')
+        return redirect(url_for('dashboard'))
+    
+    # Extract configuration from form
+    config = {
+        # Server Basics
+        "SMTP_HOST": request.form.get('smtp_host'),
+        "SMTP_PORT": int(request.form.get('smtp_port')),
+        "SMTP_REQUIRE_AUTH": 'smtp_require_auth' in request.form,
+        
+        # Security Settings
+        "SMTP_USE_TLS": 'smtp_use_tls' in request.form,
+        "GENERATE_SELF_SIGNED": 'generate_self_signed' in request.form,
+        "SSL_CERT_PATH": request.form.get('ssl_cert_path', ''),
+        "SSL_KEY_PATH": request.form.get('ssl_key_path', ''),
+        
+        # Rate Limiting
+        "DEFAULT_RATE_LIMIT": int(request.form.get('default_rate_limit')),
+        "DEFAULT_BURST_LIMIT": int(request.form.get('default_burst_limit')),
+        "REDIS_URL": request.form.get('redis_url', ''),
+        
+        # Relay Options
+        "RELAY_SMTP_HOST": request.form.get('relay_smtp_host', ''),
+        "RELAY_SMTP_PORT": int(request.form.get('relay_smtp_port')),
+        "RELAY_SMTP_USERNAME": request.form.get('relay_smtp_username', ''),
+        "RELAY_SMTP_PASSWORD": request.form.get('relay_smtp_password', ''),
+        "RELAY_SMTP_USE_TLS": 'relay_smtp_use_tls' in request.form,
+        
+        # Advanced Settings
+        "LOG_LEVEL": request.form.get('log_level'),
+        "LOG_DIR": request.form.get('log_dir'),
+        "MAX_RETRY_ATTEMPTS": int(request.form.get('max_retry_attempts')),
+        "RETRY_INITIAL_DELAY": int(request.form.get('retry_initial_delay')),
+        "ENABLE_OPEN_TRACKING": 'enable_open_tracking' in request.form,
+        "ENABLE_CLICK_TRACKING": 'enable_click_tracking' in request.form,
+        "TRACKING_DOMAIN": request.form.get('tracking_domain', '')
+    }
+    
+    # Validate the configuration
+    errors = validate_config(config)
+    if errors:
+        for error in errors:
+            flash(error, 'error')
+        return redirect(url_for('config_wizard'))
+    
+    # Save the configuration
+    if save_config(config):
+        # Restart the SMTP server
+        success, message = restart_smtp_server()
+        if success:
+            flash('Configuration saved successfully. SMTP server is restarting.', 'success')
+        else:
+            flash(f'Configuration saved, but could not restart the SMTP server: {message}', 'warning')
+    else:
+        flash('Failed to save configuration', 'error')
+    
+    return redirect(url_for('config_wizard'))
+
+@app.route('/test_smtp_relay', methods=['POST'])
+def test_smtp_relay_connection():
+    """Test SMTP relay connection"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    
+    # Extract relay parameters from request
+    data = request.json
+    host = data.get('host', '')
+    port = int(data.get('port', 587))
+    username = data.get('username', '')
+    password = data.get('password', '')
+    use_tls = data.get('use_tls', True)
+    
+    # Test connection
+    success, message = test_smtp_relay(host, port, username, password, use_tls)
+    
+    return jsonify({
+        'success': success,
+        'message': message,
+        'error': message if not success else None
+    })
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
