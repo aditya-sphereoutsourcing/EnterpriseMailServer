@@ -8,19 +8,20 @@
         <div class="card bg-secondary">
             <div class="card-header">
                 <h4 class="mb-0">Login</h4>
+                <p class="small text-light mb-0">For testing, use: admin@example.com / password123</p>
             </div>
             <div class="card-body">
                 <form method="post" action="{{ url_for('login') }}">
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required autofocus>
+                        <input type="email" class="form-control" id="email" name="email" value="admin@example.com" required>
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <input type="password" class="form-control" id="password" name="password" value="password123" required>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me">
                         <label class="form-check-label" for="rememberMe">Remember me</label>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
@@ -37,4 +38,53 @@
         </div>
     </div>
 </div>
+
+<div class="mt-4 text-center">
+    <p class="text-muted">Having trouble logging in? Please check the server logs for details.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add a direct form submission with JavaScript to bypass potential issues
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        
+        // Log to console for debugging
+        console.log('Submitting login form with email:', email);
+        
+        // Create FormData object
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+        
+        // Submit form via fetch API
+        fetch('{{ url_for('login') }}', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                return response.text().then(html => {
+                    // Update page content with the response
+                    document.open();
+                    document.write(html);
+                    document.close();
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Login error:', error);
+            alert('Error during login. Please check the console for details.');
+        });
+    });
+});
+</script>
 {% endblock %}

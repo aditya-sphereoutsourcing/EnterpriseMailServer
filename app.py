@@ -119,22 +119,39 @@ def dashboard():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """User login page"""
+    logger.info("Login route accessed")
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
         
+        logger.debug(f"Login attempt with email: {email}")
+        
         if not email or not password:
+            logger.warning("Login attempt with missing email or password")
             flash('Please provide email and password')
             return redirect(url_for('login'))
             
         from models import User
         user = User.query.filter_by(email=email).first()
         
-        if not user or not check_password_hash(user.password_hash, password):
+        logger.debug(f"User found: {user is not None}")
+        
+        if not user:
+            logger.warning(f"No user found with email: {email}")
+            flash('Invalid credentials')
+            return redirect(url_for('login'))
+            
+        password_check = check_password_hash(user.password_hash, password)
+        logger.debug(f"Password check result: {password_check}")
+        logger.debug(f"Current password hash: {user.password_hash}")
+        
+        if not password_check:
+            logger.warning(f"Invalid password for user: {email}")
             flash('Invalid credentials')
             return redirect(url_for('login'))
             
         session['user_id'] = user.id
+        logger.info(f"User {email} (ID: {user.id}) logged in successfully")
         return redirect(url_for('dashboard'))
         
     return render_template('login.html')
