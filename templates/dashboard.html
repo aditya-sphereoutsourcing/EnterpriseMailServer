@@ -1,281 +1,401 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Enterprise SMTP Server</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-envelope-open-text me-2"></i>
-                Enterprise SMTP Server
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-cog me-1"></i> Settings</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-key me-1"></i> API Keys</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
-                    </li>
-                </ul>
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Enterprise SMTP Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .stat-icon-container {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    
+    #emailActivityChart, #statusChart {
+        width: 100%;
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="mb-1">Dashboard</h1>
+        <p class="text-muted">Welcome back, {{ user.username }}!</p>
+    </div>
+    <div>
+        <a href="{{ url_for('config_wizard') }}" class="btn btn-primary">
+            <i class="fas fa-cog me-1"></i> Configure SMTP Server
+        </a>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card h-100 bg-secondary stat-card">
+            <div class="card-body text-center">
+                <div class="stat-icon-container bg-primary mx-auto">
+                    <i class="fas fa-envelope-open fa-2x text-white"></i>
+                </div>
+                <h5 class="fw-bold">Total Emails</h5>
+                <h3 class="display-5 fw-bold mb-0">{{ stats.total_emails }}</h3>
+                <p class="text-muted mb-0">All time</p>
             </div>
         </div>
-    </nav>
-
-    <!-- Dashboard Content -->
-    <div class="container-fluid py-4">
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <h1 class="mb-3">Dashboard</h1>
-                <h5>Welcome, {{ user.username }}</h5>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 bg-secondary stat-card">
+            <div class="card-body text-center">
+                <div class="stat-icon-container bg-success mx-auto">
+                    <i class="fas fa-check-circle fa-2x text-white"></i>
+                </div>
+                <h5 class="fw-bold">Delivered</h5>
+                <h3 class="display-5 fw-bold mb-0">{{ stats.delivered }}</h3>
+                <p class="text-muted mb-0">Successfully sent</p>
             </div>
-            <div class="col-md-6 text-md-end">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendEmailModal">
-                    <i class="fas fa-paper-plane me-2"></i> Send New Email
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 bg-secondary stat-card">
+            <div class="card-body text-center">
+                <div class="stat-icon-container bg-danger mx-auto">
+                    <i class="fas fa-times-circle fa-2x text-white"></i>
+                </div>
+                <h5 class="fw-bold">Failed</h5>
+                <h3 class="display-5 fw-bold mb-0">{{ stats.failed }}</h3>
+                <p class="text-muted mb-0">Delivery failures</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 bg-secondary stat-card">
+            <div class="card-body text-center">
+                <div class="stat-icon-container bg-info mx-auto">
+                    <i class="fas fa-chart-line fa-2x text-white"></i>
+                </div>
+                <h5 class="fw-bold">Open Rate</h5>
+                <h3 class="display-5 fw-bold mb-0">{{ stats.open_rate }}%</h3>
+                <p class="text-muted mb-0">Email engagement</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card bg-secondary">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Email Activity</h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary active" data-timeframe="week">Week</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-timeframe="month">Month</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-timeframe="year">Year</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="emailActivityChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Email Status</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Emails -->
+<div class="card bg-secondary mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Emails</h5>
+        <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>To</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Opens</th>
+                        <th>Clicks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for email in stats.recent_emails %}
+                    <tr>
+                        <td>{{ email.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ email.recipients }}</td>
+                        <td>{{ email.subject }}</td>
+                        <td>
+                            {% if email.status == 'delivered' %}
+                            <span class="badge bg-success">Delivered</span>
+                            {% elif email.status == 'queued' %}
+                            <span class="badge bg-warning">Queued</span>
+                            {% elif email.status == 'sent' %}
+                            <span class="badge bg-info">Sent</span>
+                            {% elif email.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% elif email.status == 'bounced' %}
+                            <span class="badge bg-danger">Bounced</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ email.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ email.opens }}</td>
+                        <td>{{ email.clicks }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No emails sent yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card bg-secondary stat-card">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="fas fa-paper-plane me-2"></i> Quick Send</h5>
+                <p class="text-muted">Quickly send a test email to verify your setup.</p>
+                <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#quickSendModal">
+                    Send Test Email
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary stat-card">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="fas fa-key me-2"></i> API Keys</h5>
+                <p class="text-muted">Manage your API keys for application integration.</p>
+                <a href="#" class="btn btn-outline-primary">
+                    Manage API Keys
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary stat-card">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="fas fa-book me-2"></i> Documentation</h5>
+                <p class="text-muted">View the API documentation and integration guides.</p>
+                <a href="#" class="btn btn-outline-primary">
+                    View Documentation
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Send Modal -->
+<div class="modal fade" id="quickSendModal" tabindex="-1" aria-labelledby="quickSendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickSendModalLabel">Send Test Email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickSendForm">
+                    <div class="mb-3">
+                        <label for="testEmailTo" class="form-label">To</label>
+                        <input type="email" class="form-control" id="testEmailTo" placeholder="recipient@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="testEmailSubject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="testEmailSubject" value="Test Email from Enterprise SMTP Server" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="testEmailBody" class="form-label">Message</label>
+                        <textarea class="form-control" id="testEmailBody" rows="5" required>This is a test email from your Enterprise SMTP Server. If you're seeing this message, your email delivery system is working correctly!</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendTestEmailBtn">
+                    <i class="fas fa-paper-plane me-1"></i> Send Test Email
                 </button>
             </div>
         </div>
-
-        <!-- Stats Cards -->
-        <div class="row g-4 mb-4">
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-secondary h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">Total Emails</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon me-3">
-                                <i class="fas fa-envelope fa-3x text-primary"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h2 class="mb-0">{{ stats.total_emails }}</h2>
-                                <p class="mb-0">All time</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-secondary h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-success">Delivered</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon me-3">
-                                <i class="fas fa-check-circle fa-3x text-success"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h2 class="mb-0">{{ stats.status_breakdown.get('sent', 0) }}</h2>
-                                <p class="mb-0">Successfully sent</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-secondary h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-warning">Pending</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon me-3">
-                                <i class="fas fa-clock fa-3x text-warning"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h2 class="mb-0">{{ stats.status_breakdown.get('queued', 0) }}</h2>
-                                <p class="mb-0">In queue</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-secondary h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-danger">Failed</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon me-3">
-                                <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h2 class="mb-0">{{ stats.status_breakdown.get('failed', 0) }}</h2>
-                                <p class="mb-0">Delivery failed</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4">
-            <!-- Email Activity Chart -->
-            <div class="col-lg-8">
-                <div class="card bg-secondary">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Email Activity</h5>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-secondary active" data-period="week">Week</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-period="month">Month</button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="emailActivityChart" height="300"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Email Status Breakdown -->
-            <div class="col-lg-4">
-                <div class="card bg-secondary">
-                    <div class="card-header">
-                        <h5 class="mb-0">Email Status</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="statusChart" height="250"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Emails -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card bg-secondary">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Recent Emails</h5>
-                        <button class="btn btn-sm btn-outline-secondary">View All</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Recipient</th>
-                                        <th>Subject</th>
-                                        <th>Status</th>
-                                        <th>Sent At</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recentEmailsTable">
-                                    <!-- Will be populated via JavaScript -->
-                                    <tr>
-                                        <td colspan="6" class="text-center">Loading recent emails...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
+</div>
+{% endblock %}
 
-    <!-- Send Email Modal -->
-    <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="sendEmailModalLabel">Send New Email</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="sendEmailForm">
-                        <div class="mb-3">
-                            <label for="sender" class="form-label">From</label>
-                            <input type="email" class="form-control" id="sender" name="sender" value="{{ user.email }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="recipients" class="form-label">To</label>
-                            <input type="text" class="form-control" id="recipients" name="recipients" placeholder="recipient@example.com, another@example.com" required>
-                            <small class="form-text text-muted">Separate multiple recipients with commas</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="subject" class="form-label">Subject</label>
-                            <input type="text" class="form-control" id="subject" name="subject" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="body" class="form-label">Message</label>
-                            <textarea class="form-control" id="body" name="body" rows="5" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="htmlBody" class="form-label">HTML Version (optional)</label>
-                            <textarea class="form-control" id="htmlBody" name="htmlBody" rows="5"></textarea>
-                        </div>
-                        <div class="alert alert-danger d-none" id="emailError"></div>
-                        <div class="alert alert-success d-none" id="emailSuccess"></div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="sendEmailBtn">
-                        <i class="fas fa-paper-plane me-1"></i> Send Email
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block scripts %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 
-    <!-- Email Details Modal -->
-    <div class="modal fade" id="emailDetailsModal" tabindex="-1" aria-labelledby="emailDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="emailDetailsModalLabel">Email Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="emailDetailsContent">
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script>
-        // Initialize charts with data from server
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get daily stats data
-            const dailyStats = {{ stats.daily_stats | tojson }};
-            const statusBreakdown = {{ stats.status_breakdown | tojson }};
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sample data for charts
+        const activityData = {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            sent: [{{ stats.daily_sent|join(', ') }}],
+            delivered: [{{ stats.daily_delivered|join(', ') }}],
+            opened: [{{ stats.daily_opened|join(', ') }}]
+        };
+        
+        const statusData = {
+            labels: ['Delivered', 'Failed', 'Bounced', 'Queued'],
+            values: [{{ stats.delivered }}, {{ stats.failed }}, {{ stats.bounced }}, {{ stats.queued }}]
+        };
+        
+        // Initialize charts
+        initEmailActivityChart(activityData);
+        initStatusChart(statusData);
+        
+        // Send test email handler
+        document.getElementById('sendTestEmailBtn').addEventListener('click', function() {
+            const to = document.getElementById('testEmailTo').value;
+            const subject = document.getElementById('testEmailSubject').value;
+            const body = document.getElementById('testEmailBody').value;
             
-            // Initialize charts
-            initEmailActivityChart(dailyStats);
-            initStatusChart(statusBreakdown);
+            if (!to || !subject || !body) {
+                alert('Please fill in all fields');
+                return;
+            }
             
-            // Load recent emails
-            loadRecentEmails();
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending...';
+            this.disabled = true;
+            
+            // Simulate sending (in a real app, this would be an API call)
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-check me-1"></i> Sent!';
+                
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Send Test Email';
+                    this.disabled = false;
+                    
+                    // Close the modal
+                    document.querySelector('#quickSendModal .btn-close').click();
+                    
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i> Test email was successfully sent to <strong>${to}</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.container').insertBefore(alert, document.querySelector('.container').firstChild);
+                }, 1000);
+            }, 2000);
         });
-    </script>
-</body>
-</html>
+        
+        // Email Activity Chart
+        function initEmailActivityChart(data) {
+            const ctx = document.getElementById('emailActivityChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Sent',
+                            data: data.sent,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Delivered',
+                            data: data.delivered,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Opened',
+                            data: data.opened,
+                            borderColor: '#6f42c1',
+                            backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Status Chart
+        function initStatusChart(data) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: [
+                            '#198754',  // Success/Delivered
+                            '#dc3545',  // Danger/Failed
+                            '#fd7e14',  // Warning/Bounced
+                            '#0dcaf0'   // Info/Queued
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
