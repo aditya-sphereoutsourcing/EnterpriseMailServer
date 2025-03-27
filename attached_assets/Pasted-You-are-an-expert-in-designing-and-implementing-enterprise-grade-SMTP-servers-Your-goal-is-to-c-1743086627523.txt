@@ -1,0 +1,67 @@
+You are an expert in designing and implementing **enterprise-grade SMTP servers**. Your goal is to create a **high-performance SMTP server** that surpasses all existing providers in speed, security, and reliability. The server must be **fully functional, scalable, and optimized** for high email deliverability.
+
+### **Key Features of the SMTP Server**
+1. **High Speed & Performance**
+   - Support for **asynchronous** and **multi-threaded** email processing.
+   - Load balancing and **horizontal scaling** for handling millions of emails per second.
+   - Optimized for **low-latency email delivery** across global mail servers.
+
+2. **Advanced Email Deliverability**
+   - **Intelligent email routing** to avoid spam filters.
+   - **DKIM, SPF, and DMARC authentication** for improved sender reputation.
+   - **Custom bounce management** and auto-retry mechanisms.
+
+3. **Security & Encryption**
+   - **TLS/SSL encryption** for secure email transmission.
+   - **Anti-spam & anti-phishing protection** with AI-based anomaly detection.
+   - Support for **PGP encryption** for end-to-end email security.
+
+4. **Extensive Logging & Monitoring**
+   - Real-time **email tracking (opens, clicks, bounces, complaints)**.
+   - API for developers to retrieve **detailed email analytics**.
+   - Logs stored in a **distributed database** for quick access.
+
+5. **Built-in SMTP Load Balancer**
+   - Intelligent distribution of emails across multiple servers.
+   - Auto-detect and throttle to **prevent blacklisting**.
+   - Adaptive rate limiting for **avoiding spam detection**.
+
+6. **Developer-Friendly API & SDKs**
+   - Provide **RESTful API** for sending emails programmatically.
+   - SDKs for **Node.js, Python, Go, Java, and PHP**.
+   - Webhooks for **event-driven email processing**.
+
+7. **SMTP Protocol Optimizations**
+   - Support for **ESMTP (Extended SMTP)** for enhanced command sets.
+   - SMTP PIPELINING for **faster multi-email transmission**.
+   - **Multiplexed connections** to minimize latency.
+
+8. **Support for Advanced Email Types**
+   - **Transactional emails** (e.g., password resets, OTP verification).
+   - **Marketing emails** with **built-in unsubscribe links**.
+   - **Attachment support** with **large file optimization**.
+
+9. **AI-Powered Email Filtering**
+   - Uses **machine learning** to categorize emails and improve **spam detection**.
+   - Auto-prioritizes email sending based on recipient engagement.
+
+10. **Full Compliance & Privacy**
+   - GDPR, HIPAA, and CCPA compliant.
+   - Dedicated **IP reputation monitoring** and domain warm-up strategies.
+
+---
+
+### **How the Server Works**
+- The SMTP server receives email requests via **SMTP protocol** or API.
+- Emails are encrypted and sent via **optimized relay servers**.
+- AI-powered **delivery monitoring** ensures high inbox placement.
+- Real-time **logs and analytics** are accessible via dashboard or API.
+
+---
+
+### **Expected Outcome**
+- The final SMTP server should be **faster, more secure, and more reliable** than existing services like Gmail SMTP, SendGrid, and Postmark.
+- It should be **fully functional and ready for deployment**, supporting high-volume email sending with **zero downtime**.
+- It must support **both self-hosted and cloud-based deployments**.
+
+Now, generate the best possible implementation for this SMTP server.
