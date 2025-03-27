@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise SMTP Server</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-envelope-open-text me-2"></i>
+                Enterprise SMTP Server
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#docs">Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}" class="btn btn-outline-primary">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-primary ms-2" href="{{ url_for('register') }}">Register</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-3">Enterprise-Grade SMTP Server</h1>
+                    <p class="lead mb-4">A high-performance email server with unparalleled speed, security, and reliability, designed for enterprise-level applications.</p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+                        <a href="#features" class="btn btn-outline-secondary btn-lg px-4">Learn More</a>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="text-center">
+                        <svg class="hero-image" width="500" height="300" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="50" y="50" width="400" height="200" rx="20" fill="#2C3E50" />
+                            <rect x="80" y="80" width="340" height="140" rx="10" fill="#34495E" />
+                            <path d="M250 140 L100 220 L100 80 Z" fill="#3498DB" />
+                            <path d="M250 140 L400 220 L400 80 Z" fill="#3498DB" />
+                            <path d="M100 80 L250 170 L400 80 Z" fill="#2980B9" />
+                            <circle cx="420" cy="70" r="15" fill="#27AE60" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5 bg-dark">
+        <div class="container">
+            <h2 class="text-center mb-5">Key Features</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 bg-secondary">
+                        <div class="card-body">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-tachometer-alt fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="card-title h5">High Performance</h3>
+                            <p class="card-text">Support for asynchronous and multi-threaded email processing with horizontal scaling for millions of emails per second.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 bg-secondary">
+                        <div class="card-body">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-shield-alt fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="card-title h5">Enhanced Security</h3>
+                            <p class="card-text">TLS/SSL encryption, DKIM, SPF, and DMARC authentication with AI-based anomaly detection for spam protection.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 bg-secondary">
+                        <div class="card-body">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-chart-line fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="card-title h5">Advanced Analytics</h3>
+                            <p class="card-text">Real-time email tracking with detailed analytics for opens, clicks, bounces, and complaints via API or dashboard.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 bg-secondary">
+                        <div class="card-body">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-balance-scale fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="card-title h5">Load Balancing</h3>
+                            <p class="card-text">Built-in SMTP load balancer for intelligent distribution across multiple servers with auto-throttling to prevent blacklisting.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 bg-secondary">
+                        <div class="card-body">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-code fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="card-title h5">Developer API</h3>
+                            <p class="card-text">RESTful API for sending emails programmatically with SDKs for multiple languages and webhook support.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 bg-secondary">
+                        <div class="card-body">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-robot fa-2x text-primary"></i>
+                            </div>
+                            <h3 class="card-title h5">AI-Powered Filtering</h3>
+                            <p class="card-text">Machine learning algorithms for email categorization, spam detection, and priority-based sending.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="docs" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Quick Start Guide</h2>
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card bg-secondary">
+                        <div class="card-header">
+                            <h3 class="h5 mb-0">SMTP Connection Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush bg-dark">
+                                <li class="list-group-item d-flex justify-content-between bg-secondary">
+                                    <span>Server:</span>
+                                    <span class="text-monospace">smtp.example.com</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between bg-secondary">
+                                    <span>Port (TLS):</span>
+                                    <span class="text-monospace">587</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between bg-secondary">
+                                    <span>Port (SSL):</span>
+                                    <span class="text-monospace">465</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between bg-secondary">
+                                    <span>Authentication:</span>
+                                    <span class="text-monospace">Username & Password</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between bg-secondary">
+                                    <span>API Endpoint:</span>
+                                    <span class="text-monospace">/api/send_email</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="card bg-secondary">
+                        <div class="card-header">
+                            <h3 class="h5 mb-0">API Example</h3>
+                        </div>
+                        <div class="card-body">
+                            <pre class="bg-dark p-3 rounded"><code>
+curl -X POST \
+  https://your-server/api/send_email \
+  -H 'Authorization: Bearer YOUR_API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "sender": "sender@example.com",
+    "recipients": ["recipient@example.com"],
+    "subject": "Test Email",
+    "body": "This is a test email sent via API",
+    "html_body": "&lt;h1&gt;Test Email&lt;/h1&gt;&lt;p&gt;This is a test email sent via API&lt;/p&gt;"
+}'
+                            </code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-4 bg-dark text-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-envelope-open-text me-2"></i> Enterprise SMTP Server</h5>
+                    <p>A high-performance email server with advanced security and deliverability features.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#features" class="text-light">Features</a></li>
+                        <li><a href="#docs" class="text-light">Documentation</a></li>
+                        <li><a href="{{ url_for('login') }}" class="text-light">Login</a></li>
+                        <li><a href="{{ url_for('register') }}" class="text-light">Register</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Contact</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> support@example.com</li>
+                        <li><i class="fas fa-phone me-2"></i> (123) 456-7890</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; 2023 Enterprise SMTP Server. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

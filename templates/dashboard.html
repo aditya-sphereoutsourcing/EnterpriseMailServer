@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Enterprise SMTP Server</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-envelope-open-text me-2"></i>
+                Enterprise SMTP Server
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-cog me-1"></i> Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-key me-1"></i> API Keys</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h1 class="mb-3">Dashboard</h1>
+                <h5>Welcome, {{ user.username }}</h5>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendEmailModal">
+                    <i class="fas fa-paper-plane me-2"></i> Send New Email
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-secondary h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Total Emails</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon me-3">
+                                <i class="fas fa-envelope fa-3x text-primary"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h2 class="mb-0">{{ stats.total_emails }}</h2>
+                                <p class="mb-0">All time</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-secondary h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">Delivered</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon me-3">
+                                <i class="fas fa-check-circle fa-3x text-success"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h2 class="mb-0">{{ stats.status_breakdown.get('sent', 0) }}</h2>
+                                <p class="mb-0">Successfully sent</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-secondary h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">Pending</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon me-3">
+                                <i class="fas fa-clock fa-3x text-warning"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h2 class="mb-0">{{ stats.status_breakdown.get('queued', 0) }}</h2>
+                                <p class="mb-0">In queue</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-secondary h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">Failed</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon me-3">
+                                <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h2 class="mb-0">{{ stats.status_breakdown.get('failed', 0) }}</h2>
+                                <p class="mb-0">Delivery failed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Email Activity Chart -->
+            <div class="col-lg-8">
+                <div class="card bg-secondary">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Email Activity</h5>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary active" data-period="week">Week</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-period="month">Month</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="emailActivityChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Status Breakdown -->
+            <div class="col-lg-4">
+                <div class="card bg-secondary">
+                    <div class="card-header">
+                        <h5 class="mb-0">Email Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Emails -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-secondary">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Emails</h5>
+                        <button class="btn btn-sm btn-outline-secondary">View All</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Recipient</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Sent At</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentEmailsTable">
+                                    <!-- Will be populated via JavaScript -->
+                                    <tr>
+                                        <td colspan="6" class="text-center">Loading recent emails...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Email Modal -->
+    <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendEmailModalLabel">Send New Email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sendEmailForm">
+                        <div class="mb-3">
+                            <label for="sender" class="form-label">From</label>
+                            <input type="email" class="form-control" id="sender" name="sender" value="{{ user.email }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recipients" class="form-label">To</label>
+                            <input type="text" class="form-control" id="recipients" name="recipients" placeholder="recipient@example.com, another@example.com" required>
+                            <small class="form-text text-muted">Separate multiple recipients with commas</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="subject" name="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="body" class="form-label">Message</label>
+                            <textarea class="form-control" id="body" name="body" rows="5" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="htmlBody" class="form-label">HTML Version (optional)</label>
+                            <textarea class="form-control" id="htmlBody" name="htmlBody" rows="5"></textarea>
+                        </div>
+                        <div class="alert alert-danger d-none" id="emailError"></div>
+                        <div class="alert alert-success d-none" id="emailSuccess"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="sendEmailBtn">
+                        <i class="fas fa-paper-plane me-1"></i> Send Email
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Details Modal -->
+    <div class="modal fade" id="emailDetailsModal" tabindex="-1" aria-labelledby="emailDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailDetailsModalLabel">Email Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="emailDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Initialize charts with data from server
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get daily stats data
+            const dailyStats = {{ stats.daily_stats | tojson }};
+            const statusBreakdown = {{ stats.status_breakdown | tojson }};
+            
+            // Initialize charts
+            initEmailActivityChart(dailyStats);
+            initStatusChart(statusBreakdown);
+            
+            // Load recent emails
+            loadRecentEmails();
+        });
+    </script>
+</body>
+</html>
