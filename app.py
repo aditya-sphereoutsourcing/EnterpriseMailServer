@@ -48,10 +48,26 @@ db.init_app(app)
 # Import email processor after app is created to avoid circular imports
 from email_processor import process_email, get_email_stats
 
-# JWT token required decorator
+# JWT token or API key required decorator
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        from models import User
+        
+        # First check if API key is provided in headers
+        api_key = None
+        if 'X-API-Key' in request.headers:
+            api_key = request.headers['X-API-Key']
+            # Validate API key
+            if api_key:
+                user = User.query.filter_by(api_key=api_key).first()
+                if user:
+                    logger.info(f"API request authenticated via API key for user {user.email}")
+                    return f(user, *args, **kwargs)
+                else:
+                    logger.warning("Invalid API key used for authentication")
+        
+        # If no API key or invalid API key, check for JWT token
         token = None
         
         # Check if token is in headers
@@ -60,25 +76,29 @@ def token_required(f):
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(' ')[1]
                 
+        # Check if token is in query parameters (less secure, but useful for testing)
+        if not token and 'token' in request.args:
+            token = request.args.get('token')
+                
         if not token:
-            return jsonify({'message': 'Token is missing'}), 401
+            return jsonify({'message': 'Authentication failed. Token or API key is missing'}), 401
         
         try:
             # Decode the token
             data = jwt.decode(token, app.secret_key, algorithms=["HS256"])
-            from models import User
             current_user = User.query.filter_by(id=data['user_id']).first()
             
             if not current_user:
                 return jsonify({'message': 'User not found'}), 401
+                
+            logger.info(f"API request authenticated via JWT token for user {current_user.email}")
+            return f(current_user, *args, **kwargs)
                 
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
             return jsonify({'message': 'Invalid token'}), 401
             
-        return f(current_user, *args, **kwargs)
-    
     return decorated
 
 # Email schema for validation
@@ -368,6 +388,52 @@ def test_smtp_relay_connection():
         'message': message,
         'error': message if not success else None
     })
+
+# API Key Management Routes
+@app.route('/api/keys/generate', methods=['POST'])
+@token_required
+def generate_api_key_route(current_user):
+    """Generate a new API key for the authenticated user"""
+    try:
+        import secrets
+        
+        # Generate a new API key
+        api_key = secrets.token_hex(32)
+        
+        # Update the user's API key
+        current_user.api_key = api_key
+        db.session.commit()
+        
+        logger.info(f"Generated new API key for user {current_user.email}")
+        return jsonify({'success': True, 'api_key': api_key}), 200
+    except Exception as e:
+        logger.error(f"Error generating API key: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/keys/revoke', methods=['POST'])
+@token_required
+def revoke_api_key_route(current_user):
+    """Revoke the current API key for the authenticated user"""
+    try:
+        # Revoke the user's API key
+        current_user.api_key = None
+        db.session.commit()
+        
+        logger.info(f"Revoked API key for user {current_user.email}")
+        return jsonify({'success': True, 'message': 'API key has been revoked'}), 200
+    except Exception as e:
+        logger.error(f"Error revoking API key: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/keys/status', methods=['GET'])
+@token_required
+def api_key_status(current_user):
+    """Check if the authenticated user has an active API key"""
+    has_key = current_user.api_key is not None
+    return jsonify({
+        'has_api_key': has_key,
+        'api_key_masked': f"{current_user.api_key[:8]}..." if has_key and current_user.api_key else None
+    }), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

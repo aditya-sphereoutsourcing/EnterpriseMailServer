@@ -193,7 +193,7 @@
             <div class="card-body">
                 <h5 class="mb-3"><i class="fas fa-key me-2"></i> API Keys</h5>
                 <p class="text-muted">Manage your API keys for application integration.</p>
-                <a href="#" class="btn btn-outline-primary">
+                <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#apiKeyModal">
                     Manage API Keys
                 </a>
             </div>
@@ -241,6 +241,79 @@
                 <button type="button" class="btn btn-primary" id="sendTestEmailBtn">
                     <i class="fas fa-paper-plane me-1"></i> Send Test Email
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Key Management Modal -->
+<div class="modal fade" id="apiKeyModal" tabindex="-1" aria-labelledby="apiKeyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="apiKeyModalLabel">API Key Management</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> API keys allow external applications to send emails through your account.
+                </div>
+                
+                <!-- API Key Status -->
+                <div id="apiKeyStatus" class="mb-4">
+                    {% if user.api_key %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i> You have an active API key.
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" value="{{ user.api_key[:8] }}************************" id="apiKeyField" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="showHideKeyBtn" data-action="show">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-danger" id="revokeKeyBtn">
+                            <i class="fas fa-trash me-1"></i> Revoke API Key
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> You don't have an active API key.
+                    </div>
+                    <button class="btn btn-primary" id="generateKeyBtn">
+                        <i class="fas fa-key me-1"></i> Generate New API Key
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <!-- API Usage Instructions -->
+                <div class="card bg-secondary mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">API Usage Examples</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6 class="mb-2">Authentication</h6>
+                            <div class="bg-dark p-2 rounded">
+                                <pre class="mb-0 text-light" style="color: #f8f9fa;">curl -H "X-API-Key: YOUR_API_KEY" \
+    {{ request.host_url }}api/email_stats</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="mb-2">Sending Email</h6>
+                            <div class="bg-dark p-2 rounded">
+                                <pre class="mb-0 text-light">curl -X POST \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: YOUR_API_KEY" \
+    -d '{"sender": "{{ user.email }}", "recipients": ["recipient@example.com"], "subject": "Test", "body": "This is a test"}' \
+    {{ request.host_url }}api/send_email</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -306,6 +379,154 @@
                 }, 1000);
             }, 2000);
         });
+        
+        // API Key Management
+        if (document.getElementById('generateKeyBtn')) {
+            document.getElementById('generateKeyBtn').addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating...';
+                this.disabled = true;
+                
+                // Call the API to generate a new key
+                fetch('/api/keys/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the UI with the new key
+                        const keyStatus = document.getElementById('apiKeyStatus');
+                        keyStatus.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i> API key generated successfully!
+                            </div>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" value="${data.api_key}" id="apiKeyField" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="copyKeyBtn">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> <strong>Important:</strong> Copy your API key now. You won't be able to see it again!
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-danger" id="revokeKeyBtn">
+                                    <i class="fas fa-trash me-1"></i> Revoke API Key
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Add event listener to the new copy button
+                        document.getElementById('copyKeyBtn').addEventListener('click', function() {
+                            const apiKeyField = document.getElementById('apiKeyField');
+                            apiKeyField.select();
+                            document.execCommand('copy');
+                            this.innerHTML = '<i class="fas fa-check"></i>';
+                            setTimeout(() => {
+                                this.innerHTML = '<i class="fas fa-copy"></i>';
+                            }, 2000);
+                        });
+                        
+                        // Add event listener to the new revoke button
+                        document.getElementById('revokeKeyBtn').addEventListener('click', handleRevokeKey);
+                    } else {
+                        alert('Error generating API key: ' + (data.error || 'Unknown error'));
+                        this.innerHTML = '<i class="fas fa-key me-1"></i> Generate New API Key';
+                        this.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while generating the API key.');
+                    this.innerHTML = '<i class="fas fa-key me-1"></i> Generate New API Key';
+                    this.disabled = false;
+                });
+            });
+        }
+        
+        // Handle show/hide API key
+        if (document.getElementById('showHideKeyBtn')) {
+            document.getElementById('showHideKeyBtn').addEventListener('click', function() {
+                const apiKeyField = document.getElementById('apiKeyField');
+                const action = this.getAttribute('data-action');
+                
+                if (action === 'show') {
+                    // Call API to get the full key
+                    fetch('/api/keys/status')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.has_api_key) {
+                                apiKeyField.value = '********************'; // Masked for security
+                                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                                this.setAttribute('data-action', 'hide');
+                            }
+                        });
+                } else {
+                    apiKeyField.value = '{{ user.api_key[:8] }}************************';
+                    this.innerHTML = '<i class="fas fa-eye"></i>';
+                    this.setAttribute('data-action', 'show');
+                }
+            });
+        }
+        
+        // Handle revoke API key
+        function handleRevokeKey() {
+            if (confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
+                const revokeBtn = document.getElementById('revokeKeyBtn');
+                revokeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Revoking...';
+                revokeBtn.disabled = true;
+                
+                // Call the API to revoke the key
+                fetch('/api/keys/revoke', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the UI to show no key
+                        const keyStatus = document.getElementById('apiKeyStatus');
+                        keyStatus.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> You don't have an active API key.
+                            </div>
+                            <button class="btn btn-primary" id="generateKeyBtn">
+                                <i class="fas fa-key me-1"></i> Generate New API Key
+                            </button>
+                        `;
+                        
+                        // Add event listener to the new generate button
+                        document.getElementById('generateKeyBtn').addEventListener('click', function() {
+                            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating...';
+                            this.disabled = true;
+                            // The rest of the code is the same as above, but we can't access it here
+                            // So we'll just reload the page
+                            location.reload();
+                        });
+                    } else {
+                        alert('Error revoking API key: ' + (data.error || 'Unknown error'));
+                        revokeBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Revoke API Key';
+                        revokeBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while revoking the API key.');
+                    revokeBtn.innerHTML = '<i class="fas fa-trash me-1"></i> Revoke API Key';
+                    revokeBtn.disabled = false;
+                });
+            }
+        }
+        
+        if (document.getElementById('revokeKeyBtn')) {
+            document.getElementById('revokeKeyBtn').addEventListener('click', handleRevokeKey);
+        }
         
         // Email Activity Chart
         function initEmailActivityChart(data) {
